@@ -24,15 +24,26 @@ class FactorioSim:
         eps = torch.finfo(log_prob.dtype).eps
         p_sum = torch.clamp(p_sum, max=1 - eps)
         return torch.log1p(-p_sum).squeeze(dim)
+    
+    def log1mexp(self, x: torch.Tensor) -> torch.Tensor:
+        """Numerically accurate evaluation of log(1 - exp(x)) for x < 0.
+        See [Maechler2012accurate]_ for details.
+        """
+        mask = -math.log(2) < x  # x < 0
+        return torch.where(
+            mask,
+            (-x.expm1()).log(),
+            (-x.exp()).log1p(),
+        )
 
     def eval(self, solve, iter_add, verbose=0,max_iter=67):
-        items_old = torch.full((self.BOX_SIZE, self.BOX_SIZE, len(Tile)), self.NEG_INF)
+        items_old = torch.full((self.BOX_SIZE, self.BOX_SIZE), self.NEG_INF)
         
-        items_old = torch.logaddexp(items_old, torch.log(iter_add).unsqueeze(-1).repeat(1,1,len(Tile)))
+        items_old = torch.logaddexp(items_old, torch.log(iter_add))
         item_balance = iter_add.sum()
 
         for iter in range(round(max_iter)):
-            log_total_mass = items_old.max(dim=-1)[0]
+            log_total_mass = items_old
             log_total_mass = torch.clamp(log_total_mass, min=self.NEG_INF)
 
             log_pull = torch.full((self.BOX_SIZE, self.BOX_SIZE, len(Tile)), self.NEG_INF, device=solve.device)
@@ -58,9 +69,9 @@ class FactorioSim:
             log_fraction_pulled = log_pulled_mass - log_total_mass.unsqueeze(-1)
             log_left_fraction = self._log1m_sum_exp(log_fraction_pulled)
 
-            mul_self = items_old + solve + log_left_fraction.unsqueeze(-1)
+            mul_self = items_old.unsqueeze(-1) + solve + log_left_fraction.unsqueeze(-1)
 
-            items = torch.full((self.BOX_SIZE, self.BOX_SIZE, len(Tile)), self.NEG_INF)
+            items = torch.full((self.BOX_SIZE, self.BOX_SIZE), self.NEG_INF)
             for i in range(len(Tile)):
                 tile_type = Tile(i)
                 t_data: TileData = self.TILE_DATA[tile_type]
@@ -73,7 +84,13 @@ class FactorioSim:
                         out_y = slice(max(-t_data._output[1],0), self.BOX_SIZE-max(t_data._output[1],0))
                         out_x = slice(max(t_data._output[0],0), self.BOX_SIZE-max(-t_data._output[0],0))
 
-                        src = mul_self[inp_y,inp_x, i].unsqueeze(-1).repeat(1, 1, len(idx))
+                        pass_frac_log = torch.logsumexp(solve[out_y,out_x,idx],dim=-1).clamp_max(-0.0001)
+
+                        src = mul_self[inp_y,inp_x,i] + pass_frac_log
+                        
+                        left = mul_self[inp_y,inp_x,i] + self.log1mexp(pass_frac_log)
+                        items[out_y,out_x] = torch.logaddexp(items[out_y,out_x].clone(), src)
+                        items[inp_y,inp_x] = torch.logaddexp(items[inp_y,inp_x].clone(), left)
                     else:
                         dy = t_data._output[1]-t_data._pull_pos[1]
                         dx = t_data._output[0]-t_data._pull_pos[0]
@@ -83,18 +100,19 @@ class FactorioSim:
                         out_y = slice(max(-dy,0), self.BOX_SIZE-max(dy,0))
                         out_x = slice(max(dx,0), self.BOX_SIZE-max(-dx,0))
 
-                        src = (log_pulled_mass[inp_y, inp_x, i]).unsqueeze(-1).repeat(1, 1, len(idx))
-
-                    items[out_y,out_x, idx] = torch.logaddexp(items[out_y,out_x, idx], src)
-
-            if verbose>5:
-                plt.matshow(items.detach().max(-1)[0].exp()/item_balance,vmin=0,vmax=1)
-                plt.title('Items, normalized')
-                plt.show()
+                        src = log_pulled_mass[inp_y, inp_x, i]
+                        items[out_y,out_x] = torch.logaddexp(items[out_y,out_x].clone(), src)
             
-            sum_items = items.max(-1)[0].exp().sum().item()
+            sum_items = items.exp().sum().item()
+
             assert sum_items < item_balance*1.05, f'Sum should be <= {item_balance}. ({sum_items})'
             
             items_old = items.clone()
+
+            if verbose>5:
+                print('Total mass:', sum_items)
+                plt.matshow(items.detach().exp(),vmin=0,vmax=1)
+                plt.title('Items, normalized')
+                plt.show()
             
-        return items # - torch.log(item_balance) # Normalize.
+        return items
