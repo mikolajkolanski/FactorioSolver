@@ -10,7 +10,7 @@ from tqdm import tqdm
 from tiles import *
 from utils import *
 
-class FactorioSolver:
+class FactorioSim:
     NEG_INF = -500.0
     
     def __init__(self,box_size,tile_data):
