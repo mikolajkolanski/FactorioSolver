@@ -46,7 +46,7 @@ class TestFactorioSim(unittest.TestCase):
             plt.show()
         assert abs(items[0,3].exp() -0.4) < 0.01
         assert abs(items[4,3].exp() -0.2) < 0.01
-        print('Test passed!')
+        # print('Test passed!')
         # print(f'Output pulled: {items[0,4].max(-1)[0].exp()}, Output left: {items[14,4].max(-1)[0].exp()}')
 
 
@@ -72,7 +72,7 @@ class TestFactorioSim(unittest.TestCase):
         assert abs(items[1,1].exp() - 0) < 0.01
         assert abs(items[1,0].exp() - 1) < 0.01
         assert abs(items[2,1].exp() - 0) < 0.01
-        print('Test passed!')
+        # print('Test passed!')
 
 
     def _test_belts_c(self, debug=False):
@@ -100,7 +100,7 @@ class TestFactorioSim(unittest.TestCase):
         assert abs(items[1,2].exp() - 0.51) < 0.01
         assert abs(items[1,0].exp() - 0.49) < 0.01
         assert abs(items[2,1].exp() - 0) < 0.01
-        print('Test passed!')
+        # print('Test passed!')
 
     def test_grad(self, debug=False):
         sim = FactorioSim(3, DEFAULT_TILE_DATA)
@@ -118,7 +118,7 @@ class TestFactorioSim(unittest.TestCase):
 
         loss.backward()
 
-        print('Test passed')
+        # print('Test passed')
 
 
 if __name__=='__main__':
