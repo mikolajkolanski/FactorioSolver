@@ -61,9 +61,10 @@ LEFT = Direction.LEFT
 RelPos = tuple[int,int] # x (right+), y(up+) 
 
 class TileData:
-    def __init__(self,output:RelPos,can_give_to:list[Tile]):
+    def __init__(self,output:RelPos,can_give_to:list[Tile],cost=0):
         self._output = output
         self._can_give_to = can_give_to
+        self.cost = cost
 
         self._pull_pos = None
         self._pull_max_th = 1
@@ -83,7 +84,7 @@ class TileData:
     
 DEFAULT_TILE_DATA: dict[Tile, TileData] = {
     Tile.EMPTY:
-        TileData((0, 0), Tile.ALL()),
+        TileData((0, 0), Tile.ALL(), cost=0),
 
     Tile.BELT_UP:
         TileData((0, 1), [
@@ -91,7 +92,7 @@ DEFAULT_TILE_DATA: dict[Tile, TileData] = {
             Tile.BELT_DOWN_LEFT,
             Tile.BELT_DOWN_RIGHT,
             Tile.EMPTY,
-        ] + Tile.INSERTERS()),
+        ] + Tile.INSERTERS(), cost=1),
 
     Tile.BELT_RIGHT:
         TileData((1, 0), [
@@ -99,7 +100,7 @@ DEFAULT_TILE_DATA: dict[Tile, TileData] = {
             Tile.BELT_LEFT_UP,
             Tile.BELT_LEFT_DOWN,
             Tile.EMPTY,
-        ] + Tile.INSERTERS()),
+        ] + Tile.INSERTERS(), cost=1),
 
     Tile.BELT_DOWN:
         TileData((0, -1), [
@@ -107,7 +108,7 @@ DEFAULT_TILE_DATA: dict[Tile, TileData] = {
             Tile.BELT_UP_LEFT,
             Tile.BELT_UP_RIGHT,
             Tile.EMPTY,
-        ] + Tile.INSERTERS()),
+        ] + Tile.INSERTERS(), cost=1),
 
     Tile.BELT_LEFT:
         TileData((-1, 0), [
@@ -115,7 +116,7 @@ DEFAULT_TILE_DATA: dict[Tile, TileData] = {
             Tile.BELT_RIGHT_UP,
             Tile.BELT_RIGHT_DOWN,
             Tile.EMPTY,
-        ] + Tile.INSERTERS()),
+        ] + Tile.INSERTERS(), cost=1),
 
     Tile.BELT_RIGHT_UP:
         TileData((0, 1), [
@@ -123,7 +124,7 @@ DEFAULT_TILE_DATA: dict[Tile, TileData] = {
             Tile.BELT_DOWN_LEFT,
             Tile.BELT_DOWN_RIGHT,
             Tile.EMPTY,
-        ] + Tile.INSERTERS()),
+        ] + Tile.INSERTERS(), cost=1),
 
     Tile.BELT_DOWN_RIGHT:
         TileData((1, 0), [
@@ -131,7 +132,7 @@ DEFAULT_TILE_DATA: dict[Tile, TileData] = {
             Tile.BELT_LEFT_UP,
             Tile.BELT_LEFT_DOWN,
             Tile.EMPTY,
-        ] + Tile.INSERTERS()),
+        ] + Tile.INSERTERS(), cost=1),
 
     Tile.BELT_LEFT_DOWN:
         TileData((0, -1), [
@@ -139,7 +140,7 @@ DEFAULT_TILE_DATA: dict[Tile, TileData] = {
             Tile.BELT_UP_LEFT,
             Tile.BELT_UP_RIGHT,
             Tile.EMPTY,
-        ] + Tile.INSERTERS()),
+        ] + Tile.INSERTERS(), cost=1),
 
     Tile.BELT_UP_LEFT:
         TileData((-1, 0), [
@@ -147,7 +148,7 @@ DEFAULT_TILE_DATA: dict[Tile, TileData] = {
             Tile.BELT_RIGHT_UP,
             Tile.BELT_RIGHT_DOWN,
             Tile.EMPTY,
-        ] + Tile.INSERTERS()),
+        ] + Tile.INSERTERS(), cost=1),
 
     Tile.BELT_UP_RIGHT:
         TileData((1, 0), [
@@ -155,7 +156,7 @@ DEFAULT_TILE_DATA: dict[Tile, TileData] = {
             Tile.BELT_LEFT_UP,
             Tile.BELT_LEFT_DOWN,
             Tile.EMPTY,
-        ] + Tile.INSERTERS()),
+        ] + Tile.INSERTERS(), cost=1),
 
     Tile.BELT_RIGHT_DOWN:
         TileData((0, -1), [
@@ -163,7 +164,7 @@ DEFAULT_TILE_DATA: dict[Tile, TileData] = {
             Tile.BELT_UP_LEFT,
             Tile.BELT_UP_RIGHT,
             Tile.EMPTY,
-        ] + Tile.INSERTERS()),
+        ] + Tile.INSERTERS(), cost=1),
 
     Tile.BELT_DOWN_LEFT:
         TileData((-1, 0), [
@@ -171,7 +172,7 @@ DEFAULT_TILE_DATA: dict[Tile, TileData] = {
             Tile.BELT_RIGHT_UP,
             Tile.BELT_RIGHT_DOWN,
             Tile.EMPTY,
-        ] + Tile.INSERTERS()),
+        ] + Tile.INSERTERS(), cost=1),
 
     Tile.BELT_LEFT_UP:
         TileData((0, 1), [
@@ -179,17 +180,17 @@ DEFAULT_TILE_DATA: dict[Tile, TileData] = {
             Tile.BELT_DOWN_LEFT,
             Tile.BELT_DOWN_RIGHT,
             Tile.EMPTY,
-        ] + Tile.INSERTERS()),
+        ] + Tile.INSERTERS(), cost=1),
 
     Tile.INSERTER_UP:
-        TileData((0, 1), Tile.ALL()).pull((0, -1), 0.2),
+        TileData((0, 1), Tile.ALL(), cost=2).pull((0, -1), 0.2),
 
     Tile.INSERTER_RIGHT:
-        TileData((1, 0), Tile.ALL()).pull((-1, 0), 0.2),
+        TileData((1, 0), Tile.ALL(), cost=2).pull((-1, 0), 0.2),
 
     Tile.INSERTER_DOWN:
-        TileData((0, -1), Tile.ALL()).pull((0, 1), 0.2),
+        TileData((0, -1), Tile.ALL(), cost=2).pull((0, 1), 0.2),
 
     Tile.INSERTER_LEFT:
-        TileData((-1, 0), Tile.ALL()).pull((1, 0), 0.2),
+        TileData((-1, 0), Tile.ALL(), cost=2).pull((1, 0), 0.2),
 }

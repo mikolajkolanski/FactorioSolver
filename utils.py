@@ -1,14 +1,11 @@
 import torch
 import numpy as np
-import pandas as pd
 import matplotlib.pyplot as plt
-from enum import Enum
 from dataclasses import dataclass
-import math
-from tqdm import tqdm
-import os
 from PIL import Image
 from pathlib import Path
+import sys, inspect
+import seaborn as sns
 
 from tiles import *
 
@@ -18,6 +15,22 @@ def plot_solve(solve):
         ax[i].matshow(grid.detach().exp().numpy(),vmin=0,vmax=1)
         ax[i].set
         ax[i].set_title(Tile(i))
+    plt.show()
+
+
+def plot_grads(logits, losses:dict):
+    fig, ax = plt.subplots(1,5,figsize=(3.2*5, 3*1))
+
+    grads = {}
+    for name,loss in losses.items():
+        grads[name] = torch.autograd.grad(loss, logits, 
+                                            retain_graph=True, allow_unused=True)[0][...,1::].sum(-1).detach().cpu()
+    vmin = np.min(list(grads.values()))
+    vmax = np.max(list(grads.values()))
+
+    
+    for i,(name,grad) in enumerate(grads.items()):
+        sns.heatmap(grad,ax=ax[i],vmin=vmin,vmax=vmax,cbar=False).set_title(f'Grad/{name}')
     plt.show()
 
 
@@ -40,3 +53,21 @@ def render_solve(solve: torch.Tensor):
 
     for i in assets.values():
         i.close()
+
+
+def plot_schedule(schedule):
+    methods = inspect.getmembers(schedule, inspect.ismethod)
+    methods = [(i,j) for i,j in methods if not i.startswith('_')]
+
+    com_ax = plt.subplot()
+    com_ax.set_title('Combined')
+
+    fig, ax = plt.subplots(1, len(methods), figsize=(3.5*len(methods), 3))
+
+    for i, (m_name, m_func) in enumerate(methods):
+        g = list(map(m_func, np.arange(0,schedule.max_iter))) 
+        ax[i].plot(g)
+        ax[i].set_title(f'{m_name} max:{max(g):.3f} min:{min(g):.3f}')
+
+        com_ax.plot(g)
+    plt.plot()

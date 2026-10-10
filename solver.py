@@ -16,7 +16,19 @@ class FactorioSim:
     def __init__(self,box_size,tile_data):
         self.BOX_SIZE = box_size
         self.TILE_DATA = tile_data
-    
+        self.start_data = None
+        self.end_mask = torch.ones(self.BOX_SIZE,self.BOX_SIZE, dtype=torch.bool)
+
+    def set_start(self, tensor):
+        assert tensor.size() == (self.BOX_SIZE, self.BOX_SIZE)
+
+        self.start_data = tensor
+
+    def set_end_mask(self, mask):
+        assert mask.size() == (self.BOX_SIZE, self.BOX_SIZE)
+
+        self.end_mask = mask
+
     def _log1m_sum_exp(self, log_prob, dim=-1):
         m = log_prob.max(dim=dim, keepdim=True).values
         log_sum_exp = m + torch.log(torch.exp(log_prob - m).sum(dim=dim, keepdim=True))
@@ -36,11 +48,13 @@ class FactorioSim:
             (-x.exp()).log1p(),
         )
 
-    def eval(self, solve, iter_add, verbose=0,max_iter=67):
+    def eval(self, solve,max_iter=67,verbose=0,debug=False):
+        assert self.start_data is not None
+
         items_old = torch.full((self.BOX_SIZE, self.BOX_SIZE), self.NEG_INF)
         
-        items_old = torch.logaddexp(items_old, torch.log(iter_add))
-        item_balance = iter_add.sum()
+        items_old = torch.logaddexp(items_old, torch.log(self.start_data))
+        item_balance = self.start_data.sum()
 
         for iter in range(round(max_iter)):
             log_total_mass = items_old
@@ -102,17 +116,18 @@ class FactorioSim:
 
                         src = log_pulled_mass[inp_y, inp_x, i]
                         items[out_y,out_x] = torch.logaddexp(items[out_y,out_x].clone(), src)
-            
-            sum_items = items.exp().sum().item()
 
-            assert sum_items < item_balance*1.05, f'Sum should be <= {item_balance}. ({sum_items})'
-            
             items_old = items.clone()
 
-            if verbose>5:
-                print('Total mass:', sum_items)
-                plt.matshow(items.detach().exp(),vmin=0,vmax=1)
-                plt.title('Items, normalized')
-                plt.show()
+            if debug:
+                sum_items = items.exp().sum().item()
+
+                assert sum_items < item_balance*1.05, f'Sum should be <= {item_balance}. ({sum_items})'
+    
+                if verbose>5:
+                    print('Total mass:', sum_items)
+                    plt.matshow(items.detach().exp(),vmin=0,vmax=1)
+                    plt.title('Items, normalized')
+                    plt.show()
             
-        return items
+        return items.masked_fill(~self.end_mask,self.NEG_INF).logsumexp((0,1)) - np.log(item_balance)
